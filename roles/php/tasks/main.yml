@@ -1,0 +1,16 @@
+---
+- name: Install PHP
+  apt:
+    update_cache: yes
+    name: "{{ packages }}"
+    state: present
+
+  vars:
+    packages:
+      - php
+      - php7.2-curl
+      - php7.2-mbstring
+      - php7.2-xml
+      - php7.2-mysql
+  notify:
+    - restart apache

@@ -1,0 +1,17 @@
+---
+
+- name: Installing webserver(apache) & git
+  apt:
+    update_cache: yes
+    name: "{{ packages }}"
+    state: present
+
+  vars:
+    packages:
+    - apache2
+    - git
+
+- name: Enabling Apache2 rewrite module
+  apache2_module:
+    state: present
+    name: rewrite

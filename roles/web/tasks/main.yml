@@ -1,0 +1,27 @@
+---
+- name: Download mutillidae from github via git clone
+  git:
+    repo: https://github.com/webpwnized/mutillidae.git
+    dest: /var/www/html/mutillidae
+    clone: yes
+    update: yes
+    force: no
+    version: master
+
+- name: apache2.conf configuration change
+  template:
+    src: templates/apache2.conf.j2
+    dest: /etc/apache2/apache2.conf
+    backup: yes
+  notify:
+    - restart apache
+
+- name: .htaccess configuration change
+  template:
+    src: templates/htaccess.j2
+    dest: /var/www/html/mutillidae/.htaccess
+
+- name: database-config.inc change
+  template:
+    src: templates/database-config.inc.j2
+    dest: /var/www/html/mutillidae/includes/database-config.inc

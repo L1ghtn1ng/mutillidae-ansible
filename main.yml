@@ -1,0 +1,12 @@
+---
+- name: Install Mutillidae
+  hosts: mutillidae
+  remote_user: ansible
+  become: true
+  become_method: sudo
+
+  roles:
+    - common
+    - web
+    - php
+    - db
