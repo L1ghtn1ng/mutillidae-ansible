@@ -1,16 +1,16 @@
 ---
 - name: Install PHP
-  apt:
-    update_cache: yes
-    name: "{{ packages }}"
+  ansible.builtin.apt:
+    update_cache: true
+    name: '{{ item }}'
     state: present
-
-  vars:
-    packages:
-      - php
-      - php7.2-curl
-      - php7.2-mbstring
-      - php7.2-xml
-      - php7.2-mysql
+  loop:
+    - php
+    - php{{ php_version }}-curl
+    - php{{ php_version }}-mbstring
+    - php{{ php_version }}-xml
+    - php{{ php_version }}-mysql
+    - libapache2-mod-php
+    - php{{ php_version }}-mysqli
   notify:
-    - restart apache
+    - Restart apache

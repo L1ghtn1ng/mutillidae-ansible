@@ -4,6 +4,7 @@
   remote_user: ansible
   become: true
   become_method: sudo
+  ignore_errors: true
 
   roles:
     - common

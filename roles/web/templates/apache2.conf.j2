@@ -157,20 +157,20 @@ Include ports.conf
 # your system is serving content from a sub-directory in /srv you must allow
 # access here, or in any related virtual host.
 <Directory />
-	Options FollowSymLinks
-	AllowOverride None
-	Require all denied
+    Options FollowSymLinks
+    AllowOverride None
+    Require all denied
 </Directory>
 
 <Directory /usr/share>
-	AllowOverride None
-	Require all granted
+    AllowOverride None
+    Require all granted
 </Directory>
 
 <Directory /var/www/>
-	Options Indexes FollowSymLinks
-	AllowOverride All
-	Require all granted
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
 </Directory>
 
 #<Directory /srv/>
@@ -193,7 +193,7 @@ AccessFileName .htaccess
 # viewed by Web clients.
 #
 <FilesMatch "^\.ht">
-	Require all denied
+    Require all denied
 </FilesMatch>
 
 

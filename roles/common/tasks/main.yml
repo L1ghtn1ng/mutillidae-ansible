@@ -1,17 +1,20 @@
 ---
 
 - name: Installing webserver(apache) & git
-  apt:
-    update_cache: yes
-    name: "{{ packages }}"
+  ansible.builtin.apt:
+    update_cache: true
+    name: '{{ item }}'
     state: present
-
-  vars:
-    packages:
+  loop:
     - apache2
     - git
 
-- name: Enabling Apache2 rewrite module
-  apache2_module:
+- name: Enabling Apache2 required modules
+  community.general.apache2_module:
     state: present
-    name: rewrite
+    name: '{{ item }}'
+  loop:
+    - rewrite
+    - ssl
+    - http2
+    - headers

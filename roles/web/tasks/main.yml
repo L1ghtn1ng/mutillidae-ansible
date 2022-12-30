@@ -1,27 +1,51 @@
 ---
 - name: Download mutillidae from github via git clone
-  git:
+  ansible.builtin.git:
     repo: https://github.com/webpwnized/mutillidae.git
     dest: /var/www/html/mutillidae
-    clone: yes
-    update: yes
-    force: no
+    clone: true
+    update: true
+    force: true
     version: master
 
-- name: apache2.conf configuration change
-  template:
+- name: Apache2.conf configuration change
+  ansible.builtin.template:
     src: templates/apache2.conf.j2
     dest: /etc/apache2/apache2.conf
-    backup: yes
+    backup: true
   notify:
-    - restart apache
+    - Restart apache
 
 - name: .htaccess configuration change
-  template:
+  ansible.builtin.template:
     src: templates/htaccess.j2
     dest: /var/www/html/mutillidae/.htaccess
 
-- name: database-config.inc change
-  template:
+- name: Copy conf Mutillidae dir to correct place
+  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/conf /etc/apache2/
+
+- name: Copy conf-available Mutillidae dir to correct place
+  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/conf-available/ /etc/apache2/conf-available/
+
+- name: Copy error-pages Mutillidae dir to correct place
+  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/error-pages/ /var/www/
+
+- name: Copy Mutillidae SSL dir to correct place and set permissions
+  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/https-certificate/ /etc/ssl/mutillidae/
+
+- name: Set SSL key to correct permissions
+  ansible.builtin.file:
+    path: /etc/ssl/mutillidae/mutillidae-selfsigned.key
+    mode: 0o640
+
+- name: Database-config.inc change
+  ansible.builtin.template:
     src: templates/database-config.inc.j2
     dest: /var/www/html/mutillidae/includes/database-config.inc
+
+- name: Mutillidae.conf web config install
+  ansible.builtin.template:
+    src: templates/mutillidae.conf.j2
+    dest: /etc/apache2/sites-available/mutillidae.conf
+  notify:
+    - Restart apache
