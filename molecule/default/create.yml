@@ -21,6 +21,15 @@
         type: ed25519
         mode: "0600"
 
+    - name: Create the cloud image cache directory
+      ansible.builtin.file:
+        path: "{{ molecule_image_cache }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+
     - name: Provision the libvirt cloud instance
       community.libvirt.virt_cloud_instance:
         name: "{{ molecule_vm_name }}"
