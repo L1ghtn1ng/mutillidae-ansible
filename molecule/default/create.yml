@@ -36,6 +36,8 @@
         state: present
         uri: qemu:///system
         virt_type: "{{ molecule_kvm.stat.exists | ternary('kvm', 'qemu') }}"
+        osinfo:
+          name: ubuntu24.04
         base_image: https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img
         image_cache_dir: "{{ molecule_image_cache }}"
         image_checksum: >-
