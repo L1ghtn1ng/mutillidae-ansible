@@ -1,10 +1,35 @@
 ---
-- name: Check out the pinned Mutillidae release
+- name: Check for an existing Mutillidae checkout
+  ansible.builtin.stat:
+    path: "{{ mutillidae_install_root }}/.git"
+  register: web_mutillidae_checkout
+
+- name: Clone the pinned Mutillidae release
   ansible.builtin.git:
     repo: "{{ mutillidae_source_repository }}"
     dest: "{{ mutillidae_install_root }}"
     version: "{{ mutillidae_source_version }}"
     clone: true
+    update: false
+  when: not web_mutillidae_checkout.stat.exists
+
+- name: Preserve the role-managed database configuration
+  ansible.builtin.command:
+    argv:
+      - git
+      - -C
+      - "{{ mutillidae_install_root }}"
+      - update-index
+      - --skip-worktree
+      - src/includes/database-config.inc
+  changed_when: false
+
+- name: Check out the pinned Mutillidae release
+  ansible.builtin.git:
+    repo: "{{ mutillidae_source_repository }}"
+    dest: "{{ mutillidae_install_root }}"
+    version: "{{ mutillidae_source_version }}"
+    clone: false
     update: true
 
 - name: Create Mutillidae writable directories
@@ -55,7 +80,7 @@
       - DNS:cors.mutillidae.localhost
       - DNS:webservice.mutillidae.localhost
       - DNS:api.mutillidae.localhost
-      - "IP:{{ ansible_default_ipv4.address }}"
+      - "IP:{{ ansible_facts['default_ipv4']['address'] }}"
     owner: root
     group: root
     mode: "0644"
