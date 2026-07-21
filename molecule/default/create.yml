@@ -86,13 +86,19 @@
       register: molecule_interfaces
       retries: 60
       delay: 5
-      until: molecule_interfaces.stdout is regex('(?:[0-9]{1,3}\.){3}[0-9]{1,3}/')
+      until: molecule_interfaces.stdout is regex('(?:[0-9]{1,3}[.]){3}[0-9]{1,3}/')
 
     - name: Record the VM address
       ansible.builtin.set_fact:
         molecule_vm_address: >-
           {{ molecule_interfaces.stdout
-             | regex_search('(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?=/)') }}
+             | regex_search('(?:[0-9]{1,3}[.]){3}[0-9]{1,3}(?=/)')
+             | default('', true) }}
+
+    - name: Validate the VM address
+      ansible.builtin.assert:
+        that: molecule_vm_address | length > 0
+        fail_msg: "Could not extract an IPv4 address from virsh domifaddr output"
 
     - name: Write the Molecule instance configuration
       ansible.builtin.copy:
