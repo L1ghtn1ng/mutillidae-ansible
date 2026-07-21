@@ -1,11 +1,11 @@
 ---
-
-### Vars for everyone
-mysql_root_password: mutillidae
-php_version: 8.1
-
-host:
-  - "127.0.0.1"
-  - "::1"
-  - "localhost"
-  - '{{ ansible_fqdn }}'
+mutillidae_db_host: "127.0.0.1"
+mutillidae_db_name: mutillidae
+mutillidae_db_password: mutillidae
+mutillidae_db_port: 3306
+mutillidae_db_user: mutillidae
+mutillidae_install_root: /var/www/html/mutillidae
+mutillidae_php_version: "8.3"
+mutillidae_source_repository: https://github.com/webpwnized/mutillidae.git
+mutillidae_source_version: 84f2c00d9141dbb9e26a448c8288e651e0b5bb04
+mutillidae_web_root: /var/www/html/mutillidae/src

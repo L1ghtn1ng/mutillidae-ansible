@@ -1,20 +1,33 @@
 ---
-
-- name: Installing webserver(apache) & git
+- name: Update the APT package index
   ansible.builtin.apt:
+    cache_valid_time: 3600
     update_cache: true
-    name: '{{ item }}'
-    state: present
-  loop:
-    - apache2
-    - git
 
-- name: Enabling Apache2 required modules
-  community.general.apache2_module:
+- name: Install Apache and Mutillidae lab utilities
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - dnsutils
+      - git
+      - iputils-ping
+      - ntpsec
     state: present
-    name: '{{ item }}'
+
+- name: Enable required Apache modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
   loop:
+    - access_compat
+    - headers
+    - http2
     - rewrite
     - ssl
-    - http2
-    - headers
+  notify: Restart Apache
+
+- name: Enable and start Apache
+  ansible.builtin.service:
+    enabled: true
+    name: apache2
+    state: started

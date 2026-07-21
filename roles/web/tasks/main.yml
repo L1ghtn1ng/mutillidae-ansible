@@ -1,51 +1,104 @@
 ---
-- name: Download mutillidae from github via git clone
+- name: Check out the pinned Mutillidae release
   ansible.builtin.git:
-    repo: https://github.com/webpwnized/mutillidae.git
-    dest: /var/www/html/mutillidae
+    repo: "{{ mutillidae_source_repository }}"
+    dest: "{{ mutillidae_install_root }}"
+    version: "{{ mutillidae_source_version }}"
     clone: true
     update: true
-    force: true
-    version: master
 
-- name: Apache2.conf configuration change
-  ansible.builtin.template:
-    src: templates/apache2.conf.j2
-    dest: /etc/apache2/apache2.conf
-    backup: true
-  notify:
-    - Restart apache
-
-- name: .htaccess configuration change
-  ansible.builtin.template:
-    src: templates/htaccess.j2
-    dest: /var/www/html/mutillidae/.htaccess
-
-- name: Copy conf Mutillidae dir to correct place
-  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/conf /etc/apache2/
-
-- name: Copy conf-available Mutillidae dir to correct place
-  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/conf-available/ /etc/apache2/conf-available/
-
-- name: Copy error-pages Mutillidae dir to correct place
-  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/apache-configuration/error-pages/ /var/www/
-
-- name: Copy Mutillidae SSL dir to correct place and set permissions
-  ansible.builtin.command: cp -r /var/www/html/mutillidae/configuration/https-certificate/ /etc/ssl/mutillidae/
-
-- name: Set SSL key to correct permissions
+- name: Create Mutillidae writable directories
   ansible.builtin.file:
+    path: "{{ mutillidae_web_root }}/{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0775"
+  loop:
+    - data
+    - passwords
+
+- name: Configure the Mutillidae database connection
+  ansible.builtin.template:
+    src: database-config.inc.j2
+    dest: "{{ mutillidae_web_root }}/includes/database-config.inc"
+    owner: root
+    group: www-data
+    mode: "0640"
+  diff: false
+  notify: Restart Apache
+
+- name: Create the Mutillidae TLS directory
+  ansible.builtin.file:
+    path: /etc/ssl/mutillidae
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Generate the Mutillidae TLS private key
+  community.crypto.openssl_privatekey:
     path: /etc/ssl/mutillidae/mutillidae-selfsigned.key
-    mode: 0o640
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart Apache
 
-- name: Database-config.inc change
-  ansible.builtin.template:
-    src: templates/database-config.inc.j2
-    dest: /var/www/html/mutillidae/includes/database-config.inc
+- name: Generate the Mutillidae certificate signing request
+  community.crypto.openssl_csr:
+    path: /etc/ssl/mutillidae/mutillidae-selfsigned.csr
+    privatekey_path: /etc/ssl/mutillidae/mutillidae-selfsigned.key
+    common_name: mutillidae.localhost
+    subject_alt_name:
+      - DNS:mutillidae.localhost
+      - DNS:www.mutillidae.localhost
+      - DNS:cors.mutillidae.localhost
+      - DNS:webservice.mutillidae.localhost
+      - DNS:api.mutillidae.localhost
+      - "IP:{{ ansible_default_ipv4.address }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Apache
 
-- name: Mutillidae.conf web config install
+- name: Generate the Mutillidae self-signed certificate
+  community.crypto.x509_certificate:
+    path: /etc/ssl/mutillidae/mutillidae-selfsigned.crt
+    privatekey_path: /etc/ssl/mutillidae/mutillidae-selfsigned.key
+    csr_path: /etc/ssl/mutillidae/mutillidae-selfsigned.csr
+    provider: selfsigned
+    selfsigned_not_after: +3650d
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Apache
+
+- name: Install the Mutillidae Apache virtual hosts
   ansible.builtin.template:
-    src: templates/mutillidae.conf.j2
-    dest: /etc/apache2/sites-available/mutillidae.conf
-  notify:
-    - Restart apache
+    src: mutillidae.conf.j2
+    dest: /etc/apache2/sites-available/000-mutillidae.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Apache
+
+- name: Disable the default Apache virtual hosts
+  ansible.builtin.file:
+    path: "/etc/apache2/sites-enabled/{{ item }}"
+    state: absent
+  loop:
+    - 000-default.conf
+    - default-ssl.conf
+  notify: Restart Apache
+
+- name: Enable the Mutillidae Apache virtual hosts
+  ansible.builtin.file:
+    src: /etc/apache2/sites-available/000-mutillidae.conf
+    dest: /etc/apache2/sites-enabled/000-mutillidae.conf
+    state: link
+    force: true
+  notify: Restart Apache
+
+- name: Validate the Apache configuration
+  ansible.builtin.command: apache2ctl configtest
+  changed_when: false

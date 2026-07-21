@@ -1,7 +1,7 @@
 <?php
-define('DB_HOST', '127.0.0.1');
-define('DB_USERNAME', 'mutillidae');
-define('DB_PASSWORD', '{{ mysql_root_password }}');
-define('DB_NAME', 'mutillidae');
-define('DB_PORT', 3306);
+define('DB_HOST', {{ mutillidae_db_host | to_json }});
+define('DB_USERNAME', {{ mutillidae_db_user | to_json }});
+define('DB_PASSWORD', {{ mutillidae_db_password | to_json }});
+define('DB_NAME', {{ mutillidae_db_name | to_json }});
+define('DB_PORT', {{ mutillidae_db_port }});
 ?>

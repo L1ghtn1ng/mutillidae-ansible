@@ -1,13 +1,26 @@
 ---
-- name: Install Mutillidae
+- name: Deploy Mutillidae on Ubuntu 24.04
   hosts: mutillidae
-  remote_user: ansible
   become: true
-  become_method: sudo
-  ignore_errors: true
+
+  pre_tasks:
+    - name: Verify the managed host is Ubuntu 24.04 LTS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == "Ubuntu"
+          - ansible_facts.distribution_release == "noble"
+        fail_msg: >-
+          This playbook supports only Ubuntu 24.04 LTS (Noble); detected
+          {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}.
 
   roles:
     - common
-    - web
-    - php
     - db
+    - php
+    - web
+
+  handlers:
+    - name: Restart Apache
+      ansible.builtin.service:
+        name: apache2
+        state: restarted

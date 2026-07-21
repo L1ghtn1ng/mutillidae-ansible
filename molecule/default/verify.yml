@@ -1,0 +1,110 @@
+---
+- name: Verify the Mutillidae deployment
+  hosts: mutillidae
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Assert that the guest is Ubuntu 24.04
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == 'Ubuntu'
+          - ansible_distribution_version is version('24.04', '==')
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert that Apache and MariaDB are running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['apache2.service'].state == 'running'
+          - ansible_facts.services['mariadb.service'].state == 'running'
+
+    - name: Validate the Apache configuration
+      ansible.builtin.command: apache2ctl configtest
+      changed_when: false
+
+    - name: Read the installed PHP version
+      ansible.builtin.command:
+        argv:
+          - php
+          - -r
+          - "echo PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;"
+      changed_when: false
+      register: molecule_php_version
+
+    - name: Assert that Ubuntu's PHP 8.3 is installed
+      ansible.builtin.assert:
+        that:
+          - molecule_php_version.stdout == '8.3'
+
+    - name: Read the installed Mutillidae revision
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - "{{ mutillidae_install_root }}"
+          - rev-parse
+          - HEAD
+      changed_when: false
+      register: molecule_mutillidae_revision
+
+    - name: Assert that the pinned Mutillidae revision is installed
+      ansible.builtin.assert:
+        that:
+          - molecule_mutillidae_revision.stdout == mutillidae_source_version
+
+    - name: Check sensitive and writable paths
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ mutillidae_web_root }}/includes/database-config.inc"
+        - /etc/ssl/mutillidae/mutillidae-selfsigned.key
+        - "{{ mutillidae_web_root }}/data"
+        - "{{ mutillidae_web_root }}/passwords"
+      register: molecule_paths
+
+    - name: Assert path permissions
+      ansible.builtin.assert:
+        that:
+          - molecule_paths.results[0].stat.mode == '0640'
+          - molecule_paths.results[1].stat.mode == '0600'
+          - molecule_paths.results[2].stat.pw_name == 'www-data'
+          - molecule_paths.results[3].stat.pw_name == 'www-data'
+
+    - name: Query the Mutillidae database as the application user
+      ansible.mysql.mysql_info:
+        login_host: "{{ mutillidae_db_host }}"
+        login_port: "{{ mutillidae_db_port }}"
+        login_user: "{{ mutillidae_db_user }}"
+        login_password: "{{ mutillidae_db_password }}"
+        filter:
+          - databases
+      no_log: true
+      register: molecule_database_info
+
+    - name: Assert that the Mutillidae database is accessible
+      ansible.builtin.assert:
+        that:
+          - mutillidae_db_name in molecule_database_info.databases
+
+    - name: Request Mutillidae over HTTP
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/"
+        return_content: true
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      register: molecule_http
+
+    - name: Request Mutillidae over HTTPS
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      become: false
+
+    - name: Assert that Mutillidae served its application page
+      ansible.builtin.assert:
+        that:
+          - "'Mutillidae' in molecule_http.content"

@@ -1,16 +1,23 @@
 ---
-- name: Install PHP
+- name: Install PHP and required extensions
   ansible.builtin.apt:
-    update_cache: true
-    name: '{{ item }}'
+    name:
+      - libapache2-mod-php
+      - php
+      - php-curl
+      - php-ldap
+      - php-mbstring
+      - php-mysql
+      - php-xml
     state: present
-  loop:
-    - php
-    - php{{ php_version }}-curl
-    - php{{ php_version }}-mbstring
-    - php{{ php_version }}-xml
-    - php{{ php_version }}-mysql
-    - libapache2-mod-php
-    - php{{ php_version }}-mysqli
-  notify:
-    - Restart apache
+  notify: Restart Apache
+
+- name: Configure PHP for the intentionally vulnerable lab
+  ansible.builtin.template:
+    dest: >-
+      /etc/php/{{ mutillidae_php_version }}/apache2/conf.d/99-mutillidae.ini
+    group: root
+    mode: "0644"
+    owner: root
+    src: mutillidae.ini.j2
+  notify: Restart Apache

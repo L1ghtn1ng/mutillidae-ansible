@@ -1,2 +1,7 @@
 main.retry
 .idea/
+.ansible/
+.venv/
+*.img
+*.qcow2
+__pycache__/
