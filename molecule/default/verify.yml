@@ -81,6 +81,7 @@
         login_password: "{{ mutillidae_db_password }}"
         filter:
           - databases
+        return_empty_dbs: true
       no_log: true
       register: molecule_database_info
 
