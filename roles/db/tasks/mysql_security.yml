@@ -30,7 +30,18 @@
     login_unix_socket: /run/mysqld/mysqld.sock
     name: "{{ mutillidae_db_user }}"
     password: "{{ mutillidae_db_password }}"
-    priv:
-      "{{ mutillidae_db_name }}.*": ALL
     state: present
+  no_log: true
+
+- name: Grant the Mutillidae user access to the application database
+  ansible.mysql.mysql_query:
+    config_file: ""
+    login_unix_socket: /run/mysqld/mysqld.sock
+    query: >-
+      GRANT ALL PRIVILEGES ON
+      `{{ mutillidae_db_name | replace('`', '``') }}`.* TO %s@%s
+    positional_args:
+      - "{{ mutillidae_db_user }}"
+      - "{{ mutillidae_db_host }}"
+  changed_when: false
   no_log: true

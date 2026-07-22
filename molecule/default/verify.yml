@@ -81,7 +81,9 @@
         login_user: "{{ mutillidae_db_user }}"
         login_password: "{{ mutillidae_db_password }}"
         login_db: "{{ mutillidae_db_name }}"
-        query: SELECT DATABASE() AS database_name
+        query:
+          - SELECT DATABASE() AS database_name
+          - SELECT COUNT(*) AS blog_count FROM blogs_table
       no_log: true
       register: molecule_database_query
 
@@ -91,6 +93,7 @@
           - >-
             molecule_database_query.query_result[0][0].database_name
             == mutillidae_db_name
+          - molecule_database_query.query_result[1][0].blog_count | int > 0
 
     - name: Request Mutillidae over HTTP
       ansible.builtin.uri:

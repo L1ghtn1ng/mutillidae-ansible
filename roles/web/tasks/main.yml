@@ -13,7 +13,7 @@
     update: false
   when: not web_mutillidae_checkout.stat.exists
 
-- name: Preserve the role-managed database configuration
+- name: Preserve role-managed and generated files during Git updates
   ansible.builtin.command:
     argv:
       - git
@@ -21,7 +21,11 @@
       - "{{ mutillidae_install_root }}"
       - update-index
       - --skip-worktree
-      - src/includes/database-config.inc
+      - "{{ item }}"
+  loop:
+    - src/includes/database-config.inc
+    - src/data/accounts.xml
+    - src/passwords/accounts.txt
   changed_when: false
 
 - name: Check out the pinned Mutillidae release
@@ -43,6 +47,17 @@
     - data
     - passwords
 
+- name: Make generated Mutillidae account files writable
+  ansible.builtin.file:
+    path: "{{ mutillidae_web_root }}/{{ item }}"
+    state: file
+    owner: www-data
+    group: www-data
+    mode: "0664"
+  loop:
+    - data/accounts.xml
+    - passwords/accounts.txt
+
 - name: Configure the Mutillidae database connection
   ansible.builtin.template:
     src: database-config.inc.j2
@@ -52,6 +67,35 @@
     mode: "0640"
   diff: false
   notify: Restart Apache
+
+- name: Check whether the Mutillidae database is initialized
+  ansible.mysql.mysql_query:
+    config_file: ""
+    login_unix_socket: /run/mysqld/mysqld.sock
+    query: >-
+      SELECT COUNT(*) AS table_count
+      FROM information_schema.tables
+      WHERE table_schema = %(database_name)s
+      AND table_name = 'blogs_table'
+    named_args:
+      database_name: "{{ mutillidae_db_name }}"
+  changed_when: false
+  register: web_mutillidae_database_status
+
+- name: Initialize the Mutillidae database
+  ansible.builtin.command:
+    argv:
+      - php
+      - set-up-database.php
+    chdir: "{{ mutillidae_web_root }}"
+  become: true
+  become_user: www-data
+  changed_when: true
+  failed_when: >-
+    'Database reset successful' not in web_mutillidae_database_setup.stdout
+  register: web_mutillidae_database_setup
+  when: >-
+    web_mutillidae_database_status.query_result[0][0].table_count | int == 0
 
 - name: Create the Mutillidae TLS directory
   ansible.builtin.file:
