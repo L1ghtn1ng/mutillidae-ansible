@@ -88,8 +88,6 @@
       - php
       - set-up-database.php
     chdir: "{{ mutillidae_web_root }}"
-  become: true
-  become_user: www-data
   changed_when: true
   failed_when: >-
     'Database reset successful' not in web_mutillidae_database_setup.stdout
