@@ -74,21 +74,23 @@
           - molecule_paths.results[3].stat.pw_name == 'www-data'
 
     - name: Query the Mutillidae database as the application user
-      ansible.mysql.mysql_info:
+      ansible.mysql.mysql_query:
+        config_file: ""
         login_host: "{{ mutillidae_db_host }}"
         login_port: "{{ mutillidae_db_port }}"
         login_user: "{{ mutillidae_db_user }}"
         login_password: "{{ mutillidae_db_password }}"
-        filter:
-          - databases
-        return_empty_dbs: true
+        login_db: "{{ mutillidae_db_name }}"
+        query: SELECT DATABASE() AS database_name
       no_log: true
-      register: molecule_database_info
+      register: molecule_database_query
 
     - name: Assert that the Mutillidae database is accessible
       ansible.builtin.assert:
         that:
-          - mutillidae_db_name in molecule_database_info.databases
+          - >-
+            molecule_database_query.query_result[0][0].database_name
+            == mutillidae_db_name
 
     - name: Request Mutillidae over HTTP
       ansible.builtin.uri:
