@@ -3,6 +3,8 @@
   hosts: mutillidae
   become: true
   gather_facts: true
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all.yml"
   tasks:
     - name: Assert that the guest is Ubuntu 24.04
       ansible.builtin.assert:
